@@ -1,5 +1,5 @@
 .container {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   animation: fadeInUp 0.5s ease-out;
 }
@@ -65,6 +65,7 @@
   justify-content: center;
   font-weight: 700;
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .sectionIconMeta {
@@ -78,6 +79,7 @@
   justify-content: center;
   font-weight: 700;
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .sectionHint {
@@ -117,6 +119,7 @@
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
+  width: 100%;
 }
 
 .select:focus {
@@ -135,6 +138,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .input {
@@ -143,6 +147,8 @@
   border-radius: var(--border-radius);
   font-size: 1rem;
   transition: var(--transition);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input:focus {
@@ -158,14 +164,15 @@
 /* Canais Adicionais */
 .channelsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
 .channelCard {
   background: var(--color-light-gray);
   border-radius: var(--border-radius);
-  padding: 1rem;
+  padding: 1.25rem;
+  box-sizing: border-box;
 }
 
 .channelTitle {
@@ -183,6 +190,10 @@
 
 .channelInputs .input {
   background: var(--color-white);
+}
+
+.channelInputs .inputGroup {
+  min-width: 0;
 }
 
 /* Mensagens */
@@ -247,7 +258,7 @@
 }
 
 /* Responsivo */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .inputGrid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -255,18 +266,22 @@
   .channelsGrid {
     grid-template-columns: 1fr;
   }
-
-  .periodSelectors {
-    grid-template-columns: 1fr;
-  }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+
   .inputGrid {
     grid-template-columns: 1fr;
   }
 
   .channelInputs {
+    grid-template-columns: 1fr;
+  }
+
+  .periodSelectors {
     grid-template-columns: 1fr;
   }
 

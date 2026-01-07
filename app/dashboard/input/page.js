@@ -10,6 +10,35 @@ const MESES = [
 
 const ANOS = ['2024', '2025', '2026']
 
+// Formata valor para exibicao (10000.50 -> "10.000,50")
+function formatCurrency(value) {
+  if (!value && value !== 0) return ''
+  const num = typeof value === 'string' ? parseFloat(value.replace(/\./g, '').replace(',', '.')) : value
+  if (isNaN(num)) return ''
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// Converte string formatada para numero (10.000,50 -> 10000.50)
+function parseCurrency(value) {
+  if (!value) return 0
+  const cleaned = value.replace(/\./g, '').replace(',', '.')
+  return parseFloat(cleaned) || 0
+}
+
+// Mascara de moeda enquanto digita
+function handleCurrencyInput(value) {
+  // Remove tudo que nao e numero
+  let numbers = value.replace(/\D/g, '')
+  if (!numbers) return ''
+
+  // Converte para centavos
+  let cents = parseInt(numbers, 10)
+  let reais = (cents / 100).toFixed(2)
+
+  // Formata com pontos e virgula
+  return parseFloat(reais).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 const initialAdsData = {
   investimento: '',
   leads: '',
@@ -39,16 +68,19 @@ export default function InputPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
 
-  const handleGoogleChange = (field, value) => {
-    setGoogleAds(prev => ({ ...prev, [field]: value }))
+  const handleGoogleChange = (field, value, isCurrency = false) => {
+    const newValue = isCurrency ? handleCurrencyInput(value) : value
+    setGoogleAds(prev => ({ ...prev, [field]: newValue }))
   }
 
-  const handleMetaChange = (field, value) => {
-    setMetaAds(prev => ({ ...prev, [field]: value }))
+  const handleMetaChange = (field, value, isCurrency = false) => {
+    const newValue = isCurrency ? handleCurrencyInput(value) : value
+    setMetaAds(prev => ({ ...prev, [field]: newValue }))
   }
 
-  const handleChannelChange = (field, value) => {
-    setChannels(prev => ({ ...prev, [field]: value }))
+  const handleChannelChange = (field, value, isCurrency = false) => {
+    const newValue = isCurrency ? handleCurrencyInput(value) : value
+    setChannels(prev => ({ ...prev, [field]: newValue }))
   }
 
   const handleSubmit = async (e) => {
@@ -71,15 +103,27 @@ export default function InputPage() {
           mes,
           ano,
           fonte: 'Google',
-          investimento: parseFloat(googleAds.investimento) || 0,
+          investimento: parseCurrency(googleAds.investimento),
           leads: parseInt(googleAds.leads) || 0,
           vendas: parseInt(googleAds.vendas) || 0,
-          receita: parseFloat(googleAds.receita) || 0,
-          ...channels,
+          receita: parseCurrency(googleAds.receita),
+          leadsSocial: parseInt(channels.leadsSocial) || 0,
+          receitaSocial: parseCurrency(channels.receitaSocial),
+          leadsInfluencer: parseInt(channels.leadsInfluencer) || 0,
+          receitaInfluencer: parseCurrency(channels.receitaInfluencer),
+          leadsAulaExp: parseInt(channels.leadsAulaExp) || 0,
+          receitaAulaExp: parseCurrency(channels.receitaAulaExp),
+          leadsEmail: parseInt(channels.leadsEmail) || 0,
+          receitaEmail: parseCurrency(channels.receitaEmail),
+          leadsSite: parseInt(channels.leadsSite) || 0,
+          receitaSite: parseCurrency(channels.receitaSite),
         }),
       })
 
-      if (!googleResponse.ok) throw new Error('Erro ao salvar Google Ads')
+      if (!googleResponse.ok) {
+        const errorData = await googleResponse.json()
+        throw new Error(errorData.error || 'Erro ao salvar Google Ads')
+      }
 
       // Salvar dados do Meta Ads
       const metaResponse = await fetch('/api/sheets', {
@@ -89,15 +133,27 @@ export default function InputPage() {
           mes,
           ano,
           fonte: 'Meta',
-          investimento: parseFloat(metaAds.investimento) || 0,
+          investimento: parseCurrency(metaAds.investimento),
           leads: parseInt(metaAds.leads) || 0,
           vendas: parseInt(metaAds.vendas) || 0,
-          receita: parseFloat(metaAds.receita) || 0,
-          ...channels,
+          receita: parseCurrency(metaAds.receita),
+          leadsSocial: parseInt(channels.leadsSocial) || 0,
+          receitaSocial: parseCurrency(channels.receitaSocial),
+          leadsInfluencer: parseInt(channels.leadsInfluencer) || 0,
+          receitaInfluencer: parseCurrency(channels.receitaInfluencer),
+          leadsAulaExp: parseInt(channels.leadsAulaExp) || 0,
+          receitaAulaExp: parseCurrency(channels.receitaAulaExp),
+          leadsEmail: parseInt(channels.leadsEmail) || 0,
+          receitaEmail: parseCurrency(channels.receitaEmail),
+          leadsSite: parseInt(channels.leadsSite) || 0,
+          receitaSite: parseCurrency(channels.receitaSite),
         }),
       })
 
-      if (!metaResponse.ok) throw new Error('Erro ao salvar Meta Ads')
+      if (!metaResponse.ok) {
+        const errorData = await metaResponse.json()
+        throw new Error(errorData.error || 'Erro ao salvar Meta Ads')
+      }
 
       setMessage({ type: 'success', text: 'Dados salvos com sucesso!' })
 
@@ -107,7 +163,7 @@ export default function InputPage() {
       setChannels(initialChannelsData)
     } catch (error) {
       console.error(error)
-      setMessage({ type: 'error', text: 'Erro ao salvar dados. Tente novamente.' })
+      setMessage({ type: 'error', text: error.message || 'Erro ao salvar dados. Tente novamente.' })
     } finally {
       setLoading(false)
     }
@@ -166,11 +222,9 @@ export default function InputPage() {
             <div className={styles.inputGroup}>
               <label className={styles.label}>Investimento (R$)</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 value={googleAds.investimento}
-                onChange={(e) => handleGoogleChange('investimento', e.target.value)}
+                onChange={(e) => handleGoogleChange('investimento', e.target.value, true)}
                 className={styles.input}
                 placeholder="0,00"
               />
@@ -200,11 +254,9 @@ export default function InputPage() {
             <div className={styles.inputGroup}>
               <label className={styles.label}>Receita (R$)</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 value={googleAds.receita}
-                onChange={(e) => handleGoogleChange('receita', e.target.value)}
+                onChange={(e) => handleGoogleChange('receita', e.target.value, true)}
                 className={styles.input}
                 placeholder="0,00"
               />
@@ -222,11 +274,9 @@ export default function InputPage() {
             <div className={styles.inputGroup}>
               <label className={styles.label}>Investimento (R$)</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 value={metaAds.investimento}
-                onChange={(e) => handleMetaChange('investimento', e.target.value)}
+                onChange={(e) => handleMetaChange('investimento', e.target.value, true)}
                 className={styles.input}
                 placeholder="0,00"
               />
@@ -256,11 +306,9 @@ export default function InputPage() {
             <div className={styles.inputGroup}>
               <label className={styles.label}>Receita (R$)</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 value={metaAds.receita}
-                onChange={(e) => handleMetaChange('receita', e.target.value)}
+                onChange={(e) => handleMetaChange('receita', e.target.value, true)}
                 className={styles.input}
                 placeholder="0,00"
               />
@@ -292,11 +340,9 @@ export default function InputPage() {
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Receita (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     value={channels.receitaSocial}
-                    onChange={(e) => handleChannelChange('receitaSocial', e.target.value)}
+                    onChange={(e) => handleChannelChange('receitaSocial', e.target.value, true)}
                     className={styles.input}
                     placeholder="0,00"
                   />
@@ -322,11 +368,9 @@ export default function InputPage() {
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Receita (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     value={channels.receitaInfluencer}
-                    onChange={(e) => handleChannelChange('receitaInfluencer', e.target.value)}
+                    onChange={(e) => handleChannelChange('receitaInfluencer', e.target.value, true)}
                     className={styles.input}
                     placeholder="0,00"
                   />
@@ -352,11 +396,9 @@ export default function InputPage() {
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Receita (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     value={channels.receitaAulaExp}
-                    onChange={(e) => handleChannelChange('receitaAulaExp', e.target.value)}
+                    onChange={(e) => handleChannelChange('receitaAulaExp', e.target.value, true)}
                     className={styles.input}
                     placeholder="0,00"
                   />
@@ -382,11 +424,9 @@ export default function InputPage() {
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Receita (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     value={channels.receitaEmail}
-                    onChange={(e) => handleChannelChange('receitaEmail', e.target.value)}
+                    onChange={(e) => handleChannelChange('receitaEmail', e.target.value, true)}
                     className={styles.input}
                     placeholder="0,00"
                   />
@@ -412,11 +452,9 @@ export default function InputPage() {
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Receita (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     value={channels.receitaSite}
-                    onChange={(e) => handleChannelChange('receitaSite', e.target.value)}
+                    onChange={(e) => handleChannelChange('receitaSite', e.target.value, true)}
                     className={styles.input}
                     placeholder="0,00"
                   />
